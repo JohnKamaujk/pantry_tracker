@@ -9,6 +9,8 @@ import {
   TextField,
   IconButton,
   InputAdornment,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { firestore } from "../firebase";
 import {
@@ -34,6 +36,9 @@ interface PantryItem {
 }
 
 export default function Home() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const [pantry, setPantry] = useState<PantryItem[]>([]);
   const [itemName, setItemName] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
@@ -211,7 +216,7 @@ export default function Home() {
       <TextField
         id="search"
         label="Search Items"
-        sx={{ width: "700px" }}
+        sx={{ width: { xs: "90%", sm: "85%", md: "700px" } }}
         variant="outlined"
         InputProps={{
           startAdornment: (
@@ -227,23 +232,31 @@ export default function Home() {
       <Button variant="contained" onClick={handleOpen}>
         Add
       </Button>
-      <Box border={"1px solid #333"}>
-        <Box width="800px" height="100px" bgcolor="#ADD8E6">
+      <Box
+        border={"1px solid #333"}
+        width={{ xs: "95%", sm: "90%", md: "800px" }}
+      >
+        <Box height="100px" bgcolor="#ADD8E6">
           <Typography variant={"h2"} textAlign={"center"} color={"#333"}>
             Pantry Items
           </Typography>
         </Box>
-        <Stack width="800px" height="300px" spacing={2} overflow={"auto"}>
+        <Stack
+          height="460px"
+          spacing={2}
+          overflow={"auto"}
+        >
           {filteredPantry.map((item) => (
             <Box
               key={item.id}
               width="100%"
               minHeight="150px"
               display={"flex"}
+              flexDirection={isMobile ? "column" : "row"}
               justifyContent={"space-between"}
               alignItems={"center"}
               bgcolor={"#f0f0f0"}
-              paddingX={5}
+              paddingX={isMobile ? 2 : 5}
             >
               <Typography variant={"h3"} textAlign={"center"} color={"#333"}>
                 {item.name.charAt(0).toUpperCase() + item.name.slice(1)}
