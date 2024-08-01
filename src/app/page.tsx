@@ -216,7 +216,6 @@ export default function Home() {
       <TextField
         id="search"
         label="Search Items"
-        
         sx={{ width: { xs: "90%", sm: "85%", md: "700px" } }}
         variant="outlined"
         InputProps={{
@@ -242,11 +241,7 @@ export default function Home() {
             Pantry Items
           </Typography>
         </Box>
-        <Stack
-          height="300px"
-          spacing={2}
-          overflow={"auto"}
-        >
+        <Stack height="300px" spacing={2} overflow={"auto"}>
           {filteredPantry.map((item) => (
             <Box
               key={item.id}
