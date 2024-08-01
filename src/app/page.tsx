@@ -216,6 +216,7 @@ export default function Home() {
       <TextField
         id="search"
         label="Search Items"
+        
         sx={{ width: { xs: "90%", sm: "85%", md: "700px" } }}
         variant="outlined"
         InputProps={{
@@ -242,7 +243,7 @@ export default function Home() {
           </Typography>
         </Box>
         <Stack
-          height="460px"
+          height="300px"
           spacing={2}
           overflow={"auto"}
         >
