@@ -12,7 +12,7 @@ This project is a pantry management application built with React and Firebase Fi
 
 ## How It Works
 
-The application uses Firebase Firestore as its database to store pantry items. Each item is stored as a document in the "pantry" collection. The frontend is built with React and Material-UI for the user interface.
+The application uses Firebase Firestore as its database to store pantry items. Each item is stored as a document in the "pantry" collection. The frontend is built with Nextjs and Material-UI for the user interface.
 
 ### Core Functionality
 
