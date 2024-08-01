@@ -1,95 +1,271 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+import { useState, useEffect } from "react";
+import {
+  Box,
+  Stack,
+  Typography,
+  Button,
+  Modal,
+  TextField,
+  IconButton,
+  InputAdornment,
+} from "@mui/material";
+import { firestore } from "../firebase";
+import {
+  collection,
+  getDocs,
+  setDoc,
+  doc,
+  deleteDoc,
+  getDoc,
+  updateDoc,
+} from "firebase/firestore";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import SearchIcon from "@mui/icons-material/Search";
+
+const PANTRY_COLLECTION = "pantry";
+
+interface PantryItem {
+  id: string;
+  name: string;
+  quantity: number;
+  createdAt: Date;
+}
 
 export default function Home() {
+  const [pantry, setPantry] = useState<PantryItem[]>([]);
+  const [itemName, setItemName] = useState<string>("");
+  const [quantity, setQuantity] = useState<number>(1);
+  const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [open, setOpen] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => {
+    setOpen(false);
+    setItemName("");
+    setQuantity(1);
+    setEditItemId(null);
+  };
+
+  const fetchPantryItems = async () => {
+    const snapshot = await getDocs(collection(firestore, PANTRY_COLLECTION));
+    const pantryList: PantryItem[] = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      pantryList.push({
+        id: doc.id,
+        name: data.name,
+        quantity: data.quantity,
+        createdAt: data.createdAt.toDate(),
+      });
+    });
+    console.log(pantryList);
+    setPantry(pantryList);
+  };
+
+  const addItem = async () => {
+    try {
+      const itemNameLower = itemName.toLowerCase();
+      const docRef = doc(firestore, PANTRY_COLLECTION, itemNameLower);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        await updateDoc(docRef, {
+          quantity: docSnap.data().quantity + quantity,
+        });
+      } else {
+        await setDoc(docRef, {
+          name: itemNameLower,
+          createdAt: new Date(),
+          quantity,
+        });
+      }
+      fetchPantryItems();
+      handleClose();
+    } catch (e) {
+      console.error("Error adding document: ", e);
+    }
+  };
+
+  const editItem = async () => {
+    try {
+      if (!editItemId) return;
+
+      const newName = itemName.toLowerCase();
+      const docRef = doc(firestore, PANTRY_COLLECTION, editItemId);
+      await updateDoc(docRef, {
+        name: newName,
+        quantity,
+      });
+      fetchPantryItems();
+      handleClose();
+    } catch (e) {
+      console.error("Error editing document: ", e);
+    }
+  };
+
+  const removeItem = async (itemId: string) => {
+    try {
+      const docRef = doc(firestore, PANTRY_COLLECTION, itemId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const newCount = docSnap.data().quantity - 1;
+        if (newCount > 0) {
+          await updateDoc(docRef, { quantity: newCount });
+        } else {
+          await deleteDoc(docRef);
+        }
+        fetchPantryItems();
+      }
+    } catch (e) {
+      console.error("Error deleting document: ", e);
+    }
+  };
+
+  const handleEdit = (
+    itemId: string,
+    itemName: string,
+    itemQuantity: number
+  ) => {
+    setEditItemId(itemId);
+    setItemName(itemName);
+    setQuantity(itemQuantity);
+    handleOpen();
+  };
+
+  const handleQuantityChange = (change: number) => {
+    setQuantity((prev) => Math.max(1, prev + change)); // Ensure quantity is at least 1
+  };
+
+  useEffect(() => {
+    fetchPantryItems();
+  }, []);
+
+  const filteredPantry = pantry.filter((item) =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
+    <Box
+      width="100vw"
+      height="100vh"
+      display={"flex"}
+      flexDirection={"column"}
+      justifyContent={"center"}
+      alignItems={"center"}
+      gap={2}
+    >
+      <Modal
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box className="modal-box">
+          <Typography id="modal-modal-title" variant="h6" component="h2">
+            {editItemId ? "Edit Item" : "Add Item"}
+          </Typography>
+          <Stack direction={"column"} spacing={2}>
+            <TextField
+              id="item-name"
+              className="textField"
+              fullWidth
+              label="Item Name"
+              variant="outlined"
+              value={itemName}
+              onChange={(e) => setItemName(e.target.value)}
             />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+            <Stack
+              direction={"row"}
+              justifyContent={"space-between"}
+              alignItems={"center"}
+              spacing={2}
+            >
+              <Button
+                variant="contained"
+                onClick={() => handleQuantityChange(-1)}
+              >
+                -
+              </Button>
+              <Typography variant="h6" component="span">
+                Quantity: {quantity}
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => handleQuantityChange(1)}
+              >
+                +
+              </Button>
+            </Stack>
+            <Button
+              variant="contained"
+              onClick={() => (editItemId ? editItem() : addItem())}
+            >
+              {editItemId ? "Update" : "Add"}
+            </Button>
+          </Stack>
+        </Box>
+      </Modal>
+      <TextField
+        id="search"
+        label="Search Items"
+        sx={{ width: "700px" }}
+        variant="outlined"
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon color="primary" />
+            </InputAdornment>
+          ),
+        }}
+        className="textField"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+      <Button variant="contained" onClick={handleOpen}>
+        Add
+      </Button>
+      <Box border={"1px solid #333"}>
+        <Box width="800px" height="100px" bgcolor="#ADD8E6">
+          <Typography variant={"h2"} textAlign={"center"} color={"#333"}>
+            Pantry Items
+          </Typography>
+        </Box>
+        <Stack width="800px" height="300px" spacing={2} overflow={"auto"}>
+          {filteredPantry.map((item) => (
+            <Box
+              key={item.id}
+              width="100%"
+              minHeight="150px"
+              display={"flex"}
+              justifyContent={"space-between"}
+              alignItems={"center"}
+              bgcolor={"#f0f0f0"}
+              paddingX={5}
+            >
+              <Typography variant={"h3"} textAlign={"center"} color={"#333"}>
+                {item.name.charAt(0).toUpperCase() + item.name.slice(1)}
+              </Typography>
+              <Typography variant={"h4"} textAlign={"center"} color={"#333"}>
+                Quantity: {item.quantity}
+              </Typography>
+              <Box>
+                <IconButton
+                  color="primary"
+                  onClick={() => handleEdit(item.id, item.name, item.quantity)}
+                >
+                  <EditIcon />
+                </IconButton>
+                <IconButton color="primary" onClick={() => removeItem(item.id)}>
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            </Box>
+          ))}
+        </Stack>
+      </Box>
+    </Box>
   );
 }
